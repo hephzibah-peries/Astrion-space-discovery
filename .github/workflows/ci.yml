@@ -1,0 +1,58 @@
+
+name: ASTRION CI
+
+on:
+  push:
+    branches:
+      - develop
+      - 'feature-**'
+
+  pull_request:
+    branches:
+      - develop
+
+permissions:
+  contents: read
+
+jobs:
+  branch-name:
+    name: Validate feature branch name
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check branch naming convention
+        env:
+          BRANCH_NAME: ${{ github.head_ref }}
+        run: |
+          if [[ ! "$BRANCH_NAME" =~ ^feature-[0-9]+/[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+            echo "Invalid branch name: $BRANCH_NAME"
+            echo "Expected format: feature-number/feature-name"
+            echo "Example: feature-001/authentication"
+            exit 1
+          fi
+
+          echo "Branch name is valid: $BRANCH_NAME"
+
+  quality-checks:
+    name: TypeScript and Expo validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type checking
+        run: npx tsc --noEmit
+
+      - name: Validate Expo configuration
+        run: npx expo config --type public

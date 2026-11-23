@@ -44,6 +44,7 @@ export const parseNasaApiError = (status: number, data?: ApodApiError): string =
  * safe fallbacks for missing or optional fields.
  */
 export const sanitizeApodItem = (raw: Partial<ApodItem>): ApodItem => {
+  const cleanCopyright = raw.copyright ? raw.copyright.replace(/[\r\n]+/g, ' ').trim() : undefined;
   return {
     date: raw.date || new Date().toISOString().split('T')[0],
     title: raw.title?.trim() || 'Astronomy Picture of the Day',
@@ -53,7 +54,7 @@ export const sanitizeApodItem = (raw: Partial<ApodItem>): ApodItem => {
     media_type: raw.media_type || 'image',
     url: raw.url || 'https://science.nasa.gov/wp-content/themes/nasa-child/assets/images/nasa-logo@2x.png',
     hdurl: raw.hdurl,
-    copyright: raw.copyright ? raw.copyright.replace(/\n/g, ' ').trim() : undefined,
+    copyright: cleanCopyright && cleanCopyright.length > 0 ? cleanCopyright : undefined,
     service_version: raw.service_version || 'v1',
     thumbnail_url: raw.thumbnail_url,
   };

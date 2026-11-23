@@ -51,11 +51,15 @@ export const DiscoverSpaceSection: React.FC<DiscoverSpaceSectionProps> = ({
 
           <View style={styles.telemetryCard}>
             <Text style={styles.cardIcon}>🏛️</Text>
-            <Text style={styles.cardLabel}>CURATOR / CREDIT</Text>
-            <Text style={styles.cardValue} numberOfLines={1}>
-              {currentApod.copyright || 'NASA / Public Domain'}
+            <Text style={styles.cardLabel}>
+              {currentApod.copyright ? 'COPYRIGHT / CREDIT' : 'IMAGE CREDIT'}
             </Text>
-            <Text style={styles.cardDetail}>Scientific Attribution</Text>
+            <Text style={styles.cardValue}>
+              {currentApod.copyright || 'Public Domain (NASA)'}
+            </Text>
+            <Text style={styles.cardDetail}>
+              {currentApod.copyright ? 'Protected Attribution' : 'No Copyright Listed'}
+            </Text>
           </View>
         </View>
       )}

@@ -107,8 +107,10 @@ export const ApodCard: React.FC<ApodCardProps> = ({ item, onViewDetails }) => {
       <View style={styles.contentContainer}>
         <Text style={styles.title}>{item.title}</Text>
 
-        {item.copyright && (
+        {item.copyright ? (
           <Text style={styles.copyright}>© {item.copyright}</Text>
+        ) : (
+          <Text style={styles.copyright}>Public Domain • NASA</Text>
         )}
 
         <Text style={styles.explanation} numberOfLines={4}>

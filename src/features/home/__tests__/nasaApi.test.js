@@ -31,6 +31,7 @@ function parseNasaApiError(status, data) {
 }
 
 function sanitizeApodItem(raw) {
+  const cleanCopyright = raw.copyright ? raw.copyright.replace(/[\r\n]+/g, ' ').trim() : undefined;
   return {
     date: raw.date || '2026-11-23',
     title: raw.title?.trim() || 'Astronomy Picture of the Day',
@@ -40,7 +41,7 @@ function sanitizeApodItem(raw) {
     media_type: raw.media_type || 'image',
     url: raw.url || 'https://science.nasa.gov/wp-content/themes/nasa-child/assets/images/nasa-logo@2x.png',
     hdurl: raw.hdurl,
-    copyright: raw.copyright ? raw.copyright.replace(/\n/g, ' ').trim() : undefined,
+    copyright: cleanCopyright && cleanCopyright.length > 0 ? cleanCopyright : undefined,
     service_version: raw.service_version || 'v1',
     thumbnail_url: raw.thumbnail_url,
   };
@@ -144,6 +145,23 @@ describe('NASA APOD API Service & Models', () => {
     assert.strictEqual(sanitized.media_type, 'image');
     assert.ok(sanitized.url);
     assert.ok(sanitized.explanation);
+  });
+
+  it('should handle whitespace-only or empty copyright by returning undefined', () => {
+    const rawWithSpaces = { title: 'Nebula', copyright: '   \n  \t  ' };
+    const sanitizedSpaces = sanitizeApodItem(rawWithSpaces);
+    assert.strictEqual(sanitizedSpaces.copyright, undefined);
+
+    const rawEmpty = { title: 'Nebula', copyright: '' };
+    const sanitizedEmpty = sanitizeApodItem(rawEmpty);
+    assert.strictEqual(sanitizedEmpty.copyright, undefined);
+  });
+
+  it('should preserve full exact copyright attribution without truncation', () => {
+    const exactCredit = 'Dave Doctor, International Space Observatory & Collaboration Team';
+    const raw = { title: 'Deep Field', copyright: `  ${exactCredit}\n\n` };
+    const sanitized = sanitizeApodItem(raw);
+    assert.strictEqual(sanitized.copyright, exactCredit);
   });
 
   it('should handle video media_type and thumbnail_url gracefully', () => {

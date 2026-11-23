@@ -15,12 +15,16 @@ import { AuthButton } from '../components/AuthButton';
 import { DemoCredentialsCard } from '../components/DemoCredentialsCard';
 import { useAuth } from '../context/AuthContext';
 import { validateIdentifier, validatePassword } from '../utils/validation';
+import type { AuthStackScreenProps } from '../../../navigation/navigation.types';
 
 interface LoginScreenProps {
-  onNavigateToRegister: () => void;
+  navigation?: AuthStackScreenProps<'Login'>['navigation'];
+  route?: AuthStackScreenProps<'Login'>['route'];
+  onNavigateToRegister?: () => void;
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({
+  navigation,
   onNavigateToRegister,
 }) => {
   const { login } = useAuth();
@@ -133,7 +137,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           {/* Navigation to Registration */}
           <View style={styles.switchRow}>
             <Text style={styles.switchText}>New cadet to ASTRION?</Text>
-            <TouchableOpacity onPress={onNavigateToRegister} activeOpacity={0.7}>
+            <TouchableOpacity
+              onPress={() => {
+                if (onNavigateToRegister) {
+                  onNavigateToRegister();
+                } else if (navigation) {
+                  navigation.navigate('Register');
+                }
+              }}
+              activeOpacity={0.7}
+            >
               <Text style={styles.switchLink}> Register Mission Account</Text>
             </TouchableOpacity>
           </View>

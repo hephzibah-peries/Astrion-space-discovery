@@ -1,11 +1,21 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+  Linking,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
 import { MainStackScreenProps } from '../navigation/navigation.types';
+import { apodCache } from '../features/home/services/apodCache';
 
-// Mock astronomical catalog database for navigation demo
-const ASTRONOMY_CATALOG: Record<
+// Legacy mock catalog for backward compatibility with Feature 003 sample IDs
+const LEGACY_CATALOG: Record<
   string,
   {
     title: string;
@@ -41,14 +51,27 @@ export const DetailsScreen: React.FC<MainStackScreenProps<'Details'>> = ({
   navigation,
 }) => {
   const { itemId } = route.params;
-  const content = ASTRONOMY_CATALOG[itemId] || {
-    title: `Celestial Item ${itemId}`,
-    mission: 'General Astrophysical Archive',
-    target: 'Uncharted Coordinates',
-    distance: 'Unknown',
-    description:
-      'Temporary sample content loaded for navigation parameter verification. Live NASA APOD and rover APIs will be attached during Feature 004.',
-    telemetryStatus: 'Active Parameter Handshake',
+  const [imageLoading, setImageLoading] = useState(true);
+
+  // Check if item is available in APOD cache (from Home screen)
+  const cachedApod = apodCache.get(itemId);
+  const legacyContent = LEGACY_CATALOG[itemId];
+
+  const isRealApod = !!cachedApod;
+  const isVideo = cachedApod?.media_type === 'video';
+  const displayImageUri = isVideo ? cachedApod?.thumbnail_url : cachedApod?.hdurl || cachedApod?.url;
+
+  const handleOpenExternal = async () => {
+    if (!cachedApod) return;
+    try {
+      const urlToOpen = cachedApod.hdurl || cachedApod.url;
+      const canOpen = await Linking.canOpenURL(urlToOpen);
+      if (canOpen) {
+        await Linking.openURL(urlToOpen);
+      }
+    } catch {
+      // Graceful fallback
+    }
   };
 
   return (
@@ -73,52 +96,107 @@ export const DetailsScreen: React.FC<MainStackScreenProps<'Details'>> = ({
 
         {/* Hero Card */}
         <View style={styles.heroCard}>
-          <Text style={styles.heroIcon}>🪐</Text>
-          <Text style={styles.title}>{content.title}</Text>
-          <Text style={styles.mission}>{content.mission}</Text>
+          <Text style={styles.heroIcon}>{isRealApod ? '🔭' : '🪐'}</Text>
+          <Text style={styles.title}>
+            {cachedApod?.title || legacyContent?.title || `Celestial Item ${itemId}`}
+          </Text>
+          <Text style={styles.mission}>
+            {isRealApod
+              ? `NASA Planetary APOD Archive • ${cachedApod?.date}`
+              : legacyContent?.mission || 'General Astrophysical Archive'}
+          </Text>
+          {cachedApod?.copyright && (
+            <Text style={styles.copyrightText}>Attribution: © {cachedApod.copyright}</Text>
+          )}
         </View>
+
+        {/* Visual Media Presentation (When APOD has image or video) */}
+        {isRealApod && displayImageUri && (
+          <View style={styles.mediaContainer}>
+            <Image
+              source={{ uri: displayImageUri }}
+              style={styles.mediaImage}
+              resizeMode="cover"
+              onLoadEnd={() => setImageLoading(false)}
+            />
+            {imageLoading && (
+              <View style={styles.mediaLoader}>
+                <ActivityIndicator size="small" color={colors.primary} />
+              </View>
+            )}
+
+            {isVideo && (
+              <TouchableOpacity
+                style={styles.videoBadge}
+                onPress={handleOpenExternal}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.videoBadgeText}>▶ Launch Video Transmission</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         {/* Telemetry Data Grid */}
         <View style={styles.telemetryGrid}>
           <View style={styles.gridCell}>
-            <Text style={styles.gridLabel}>TARGET OBJECT</Text>
-            <Text style={styles.gridValue}>{content.target}</Text>
+            <Text style={styles.gridLabel}>DATA SOURCE</Text>
+            <Text style={styles.gridValue}>
+              {isRealApod ? 'NASA APOD API' : legacyContent?.target || 'NASA Catalog'}
+            </Text>
           </View>
           <View style={styles.gridCell}>
-            <Text style={styles.gridLabel}>DISTANCE</Text>
-            <Text style={styles.gridValue}>{content.distance}</Text>
+            <Text style={styles.gridLabel}>SPECTRUM / FORMAT</Text>
+            <Text style={styles.gridValue}>
+              {isRealApod
+                ? cachedApod?.media_type === 'video'
+                  ? 'Video Broadcast'
+                  : 'Optical / IR'
+                : legacyContent?.distance || 'Calibrated'}
+            </Text>
           </View>
           <View style={styles.gridCell}>
             <Text style={styles.gridLabel}>PARAM HANDSHAKE</Text>
             <Text style={styles.gridValueSuccess}>PASS (itemId: {itemId})</Text>
           </View>
           <View style={styles.gridCell}>
-            <Text style={styles.gridLabel}>STATUS</Text>
-            <Text style={styles.gridValue}>{content.telemetryStatus}</Text>
+            <Text style={styles.gridLabel}>RESOLUTION</Text>
+            <Text style={styles.gridValue}>
+              {cachedApod?.hdurl ? 'HD Master Available' : 'Standard Broadcast'}
+            </Text>
           </View>
         </View>
 
-        {/* Detailed Description */}
+        {/* Detailed Scientific Explanation */}
         <View style={styles.contentCard}>
-          <Text style={styles.contentHeader}>Scientific Overview</Text>
-          <Text style={styles.contentBody}>{content.description}</Text>
-        </View>
-
-        {/* Feature Notice */}
-        <View style={styles.noticeBox}>
-          <Text style={styles.noticeIcon}>ℹ️</Text>
-          <Text style={styles.noticeText}>
-            <Text style={styles.noticeBold}>Feature 004 Horizon:</Text> This screen demonstrates typed parameter navigation. In Feature 004, real NASA Astronomy Picture of the Day (APOD) APIs and high-resolution imagery will be connected.
+          <Text style={styles.contentHeader}>Scientific Overview & Telemetry</Text>
+          <Text style={styles.contentBody}>
+            {cachedApod?.explanation ||
+              legacyContent?.description ||
+              'Sample telemetry loaded for navigation parameter verification.'}
           </Text>
         </View>
 
-        {/* Back Button */}
+        {/* External High-Resolution Link Button */}
+        {isRealApod && (cachedApod.hdurl || cachedApod.url) && (
+          <TouchableOpacity
+            style={styles.externalButton}
+            onPress={handleOpenExternal}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.externalButtonText}>
+              {isVideo ? 'Open Video Stream Link  ↗' : 'View High-Resolution Image on NASA  ↗'}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Return Button */}
         <TouchableOpacity
           style={styles.returnButton}
           onPress={() => navigation.goBack()}
           activeOpacity={0.8}
         >
-          <Text style={styles.returnButtonText}>Return to Feed</Text>
+          <Text style={styles.returnButtonText}>Return to Discoveries Feed</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -194,12 +272,55 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: 6,
+    lineHeight: 28,
   },
   mission: {
     fontSize: 13,
     color: colors.accentPurple,
     fontWeight: '600',
     textAlign: 'center',
+    marginBottom: 4,
+  },
+  copyrightText: {
+    fontSize: 11,
+    color: colors.textMuted,
+  },
+  mediaContainer: {
+    width: '100%',
+    height: 240,
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: '#07090F',
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 18,
+    position: 'relative',
+  },
+  mediaImage: {
+    width: '100%',
+    height: '100%',
+  },
+  mediaLoader: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(11, 14, 23, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoBadge: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    backgroundColor: 'rgba(11, 14, 23, 0.85)',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  videoBadgeText: {
+    color: colors.primary,
+    fontSize: 11,
+    fontWeight: '700',
   },
   telemetryGrid: {
     flexDirection: 'row',
@@ -250,30 +371,23 @@ const styles = StyleSheet.create({
   contentBody: {
     fontSize: 13,
     color: colors.textSecondary,
-    lineHeight: 20,
+    lineHeight: 21,
   },
-  noticeBox: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(129, 140, 248, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(129, 140, 248, 0.2)',
+  externalButton: {
+    width: '100%',
+    paddingVertical: 12,
     borderRadius: 12,
-    padding: 12,
-    gap: 8,
-    marginBottom: 20,
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
-  noticeIcon: {
-    fontSize: 16,
-  },
-  noticeText: {
-    flex: 1,
-    fontSize: 12,
-    color: '#C7D2FE',
-    lineHeight: 17,
-  },
-  noticeBold: {
-    fontWeight: '700',
+  externalButtonText: {
     color: colors.primary,
+    fontSize: 13,
+    fontWeight: '700',
   },
   returnButton: {
     width: '100%',

@@ -20,12 +20,16 @@ import {
   validateConfirmPassword,
 } from '../utils/validation';
 import { SimulatedRegisterResponse } from '../types/auth.types';
+import type { AuthStackScreenProps } from '../../../navigation/navigation.types';
 
 interface RegisterScreenProps {
-  onNavigateToLogin: () => void;
+  navigation?: AuthStackScreenProps<'Register'>['navigation'];
+  route?: AuthStackScreenProps<'Register'>['route'];
+  onNavigateToLogin?: () => void;
 }
 
 export const RegisterScreen: React.FC<RegisterScreenProps> = ({
+  navigation,
   onNavigateToLogin,
 }) => {
   const { register } = useAuth();
@@ -126,7 +130,13 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
             </View>
             <AuthButton
               title="Proceed to Sign In  →"
-              onPress={onNavigateToLogin}
+              onPress={() => {
+                if (onNavigateToLogin) {
+                  onNavigateToLogin();
+                } else if (navigation) {
+                  navigation.navigate('Login');
+                }
+              }}
               style={styles.successButton}
             />
           </View>
@@ -195,7 +205,16 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
             {/* Back to Login */}
             <View style={styles.switchRow}>
               <Text style={styles.switchText}>Already enlisted?</Text>
-              <TouchableOpacity onPress={onNavigateToLogin} activeOpacity={0.7}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (onNavigateToLogin) {
+                    onNavigateToLogin();
+                  } else if (navigation) {
+                    navigation.navigate('Login');
+                  }
+                }}
+                activeOpacity={0.7}
+              >
                 <Text style={styles.switchLink}> Sign In Instead</Text>
               </TouchableOpacity>
             </View>

@@ -25,9 +25,10 @@ export const ApodCard: React.FC<ApodCardProps> = ({ item, onViewDetails }) => {
 
   const handleOpenVideo = async () => {
     try {
-      const canOpen = await Linking.canOpenURL(item.url);
+      const urlToOpen = item.permalink || item.url;
+      const canOpen = await Linking.canOpenURL(urlToOpen);
       if (canOpen) {
-        await Linking.openURL(item.url);
+        await Linking.openURL(urlToOpen);
       }
     } catch {
       // Fallback

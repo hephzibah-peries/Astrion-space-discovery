@@ -64,7 +64,7 @@ export const DetailsScreen: React.FC<MainStackScreenProps<'Details'>> = ({
   const handleOpenExternal = async () => {
     if (!cachedApod) return;
     try {
-      const urlToOpen = cachedApod.hdurl || cachedApod.url;
+      const urlToOpen = cachedApod.permalink || cachedApod.hdurl || cachedApod.url;
       const canOpen = await Linking.canOpenURL(urlToOpen);
       if (canOpen) {
         await Linking.openURL(urlToOpen);
@@ -185,7 +185,7 @@ export const DetailsScreen: React.FC<MainStackScreenProps<'Details'>> = ({
             activeOpacity={0.8}
           >
             <Text style={styles.externalButtonText}>
-              {isVideo ? 'Open Video Stream Link  ↗' : 'View High-Resolution Image on NASA  ↗'}
+              {isVideo ? 'Open Video Stream Link  ↗' : 'View Full Article on NASA  ↗'}
             </Text>
           </TouchableOpacity>
         )}

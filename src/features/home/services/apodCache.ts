@@ -14,6 +14,7 @@ class ApodCache {
     this.todayApod = item;
     this.lastFetchedTime = Date.now();
     this.cache.set('today', item);
+    this.cache.set('apod-today', item);
     this.cache.set(item.date, item);
     this.cache.set(`apod-${item.date}`, item);
   }
@@ -28,6 +29,7 @@ class ApodCache {
   set(id: string, item: ApodItem): void {
     this.cache.set(id, item);
     this.cache.set(item.date, item);
+    this.cache.set(`apod-${item.date}`, item);
   }
 
   get(id: string): ApodItem | undefined {
